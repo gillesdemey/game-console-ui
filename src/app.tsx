@@ -1,11 +1,10 @@
 import React, { useEffect, useState } from 'react'
-import { useKeyPress } from 'react-use'
 import { ToastProvider } from 'react-toast-notifications'
 import { useSpring, animated } from 'react-spring'
 import { Surface } from 'gl-react-dom'
 import { Blur } from 'gl-react-blur'
 
-import useGamepad from './useGamepad'
+import { useControls, controls, useConnectivity } from './useControls'
 import { Darken } from './shaders'
 
 const GAMES = [{
@@ -48,18 +47,23 @@ const GAMES = [{
 const App = () => {
   const [selected, setSelected] = useState(1)
 
-  const [leftPressed] = useKeyPress('ArrowLeft')
-  const [rightPressed] = useKeyPress('ArrowRight')
+  useControls(control => {
+    if (control === controls.left) {
+      goLeft()
+    }
 
-  useEffect(() => {
-    if (!leftPressed) return
+    if (control === controls.right) {
+      goRight()
+    }
+  })
+
+  function goLeft () {
     setSelected(selected => Math.max(0, selected - 1))
-  }, [leftPressed])
+  }
 
-  useEffect(() => {
-    if (!rightPressed) return
+  function goRight () {
     setSelected(selected => Math.min(GAMES.length - 1, selected + 1))
-  }, [rightPressed])
+  }
 
   function handleSelect (index) {
     setSelected(index)
@@ -91,7 +95,7 @@ const Background = ({ src = '' }) => {
 }
 
 const Listeners = () => {
-  useGamepad()
+  useConnectivity()
   return null
 }
 
