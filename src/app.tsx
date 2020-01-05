@@ -1,11 +1,9 @@
-import React, { useEffect, useState } from 'react'
+import React, { useState } from 'react'
 import { ToastProvider } from 'react-toast-notifications'
 import { useSpring, animated } from 'react-spring'
-import { Surface } from 'gl-react-dom'
-import { Blur } from 'gl-react-blur'
 
 import { useControls, controls, useConnectivity } from './useControls'
-import { Darken } from './shaders'
+import Background from './Background'
 
 const GAMES = [{
     id: 0,
@@ -46,6 +44,7 @@ const GAMES = [{
 
 const App = () => {
   const [selected, setSelected] = useState(1)
+  const [playing, setPlaying] = useState(false)
 
   useControls(control => {
     if (control === controls.left) {
@@ -54,6 +53,14 @@ const App = () => {
 
     if (control === controls.right) {
       goRight()
+    }
+
+    if (control === controls.exit) {
+      setPlaying(false)
+    }
+
+    if (control === controls.select) {
+      setPlaying(true)
     }
   })
 
@@ -69,28 +76,18 @@ const App = () => {
     setSelected(index)
   }
 
+  function handleStartResume (game) {
+    setPlaying(true)
+  }
+
   return (
     <ToastProvider autoDismiss autoDismissTimeout={2000}>
       <Listeners />
-      <Background src={GAMES[selected].bg} />
+      <Background blur={!playing} src={GAMES[selected].bg} />
       <div className='root__content'>
-        <CoverList handleSelect={handleSelect} games={GAMES} selectedIndex={selected} />
+        <CoverList hidden={playing} handleStartResume={handleStartResume} handleSelect={handleSelect} games={GAMES} selectedIndex={selected} />
       </div>
     </ToastProvider>
-  )
-}
-
-const Background = ({ src = '' }) => {
-  return (
-    <div className='root__background'>
-      <Surface width={1920} height={1080}>
-        <Darken brightness={0.5}>
-          <Blur factor={6} passes={6}>
-            {src}
-          </Blur>
-        </Darken>
-      </Surface>
-    </div>
   )
 }
 
@@ -99,23 +96,39 @@ const Listeners = () => {
   return null
 }
 
-const CoverList = ({ games = [], selectedIndex = 0, handleSelect }) => {
+const CoverList = ({ handleStartResume, hidden, games = [], selectedIndex = 0, handleSelect }) => {
+  const props = useSpring({
+    from: {
+      transform: 'translate3d(0,200%,0)'
+    },
+    to: {
+      transform: hidden
+        ? 'translate3d(0,200%,0)'
+        : 'translate3d(0,0,0)'
+    }
+  })
+
+  const style = {
+    transform: props.transform
+      .interpolate(value => value),
+  }
+
   return (
-    <div className='games__list'>
+    <animated.div className='games__list' style={style}>
       {games.map((game, index) => (
-        <Cover key={game.id} handleSelect={() => handleSelect(index)} title={game.title} src={game.cover} selected={index === selectedIndex} />
+        <Cover key={game.id} onClick={() => handleStartResume(game)} onMouseOver={() => handleSelect(index)} title={game.title} src={game.cover} selected={index === selectedIndex} />
       ))}
-    </div>
+    </animated.div>
   )
 }
 
-const Cover = ({ handleSelect, src, title, selected = false }: { handleSelect: Function, src: string, title: string, selected?: boolean }) => {
+const Cover = ({ onMouseOver, onClick, src, title, selected = false }: { onClick: Function, onMouseOver: Function, src: string, title: string, selected?: boolean }) => {
   const props = useSpring({
     from: {
-      scale: 1
+      scale: 0.8
     },
     to: {
-      scale: selected ? 1.2 : 1
+      scale: selected ? 1 : 0.8
     },
     config: {
       mass: 1,
@@ -124,11 +137,18 @@ const Cover = ({ handleSelect, src, title, selected = false }: { handleSelect: F
     }
   })
 
+  const style = {
+    transform: props.scale
+      .interpolate(scale => `scale(${scale})`),
+  }
+
   return (
-    <animated.div className='games__cover' onMouseOver={handleSelect} style={{
-      transform: props.scale
-        .interpolate(scale => `scale(${scale})`),
-    }}>
+    <animated.div
+      onClick={onClick}
+      className='games__cover'
+      onMouseOver={onMouseOver}
+      style={style}
+    >
       <img src={src} alt={title} />
       <header>{title}</header>
     </animated.div>
