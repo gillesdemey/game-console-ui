@@ -81,7 +81,7 @@ const Background = ({ src = '' }) => {
     <div className='root__background'>
       <Surface width={1920} height={1080}>
         <Darken brightness={0.5}>
-          <Blur factor={2} passes={4}>
+          <Blur factor={6} passes={6}>
             {src}
           </Blur>
         </Darken>
